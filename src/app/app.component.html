@@ -1,80 +1,20 @@
-<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
-  <div class="container-fluid justify-content-center">
-    <form class="d-flex w-50" (submit)="bilatuHiria(); $event.preventDefault()">
-      <input 
-        class="form-control me-2 text-center" 
-        type="search" 
-        placeholder="Idatzi hiriaren izena..." 
-        [(ngModel)]="bilaketaHiria" 
-        name="hiria">
-      <button class="btn btn-outline-light" type="submit">Bilatu</button>
-    </form>
-  </div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" routerLink="/">Turismoa EH</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuaNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menuaNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Hasiera</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/eguraldia" routerLinkActive="active">Eguraldia Panel</a>
+                </li>
+            </ul>
+        </div>
+    </div>
 </nav>
 
-<div class="container mt-5" *ngIf="unekoDatuak">
-  
-  <div class="text-center mb-4">
-    <h2 class="fw-bold mb-3">{{ hiriaGordea }}REN MOMENTUKO DATU METEOROLOGIKOAK</h2>
-    
-    <div class="display-1 mb-3">
-      <img style="height: 25%; width: 25%;" src="{{ lortuEguraldiDeskribapena(unekoDatuak.weather_code).irudia }}">
-    </div>
-    
-    <div class="table-responsive">
-      <table class="table table-bordered table-striped align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Eguna eta Ordua</th>
-            <th>Tenperatura</th>
-            <th>Sentsazio Termikoa</th>
-            <th>Hezetasuna</th>
-            <th>Haizearen abiadura</th>
-            <th>Hodeiak</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{{ unekoDatuak.time | date:'yyyy/MM/dd HH:mm' }}</td>
-            <td class="fw-bold">{{ unekoDatuak.temperature_2m }} °C</td>
-            <td>{{ unekoDatuak.apparent_temperature }} °C</td>
-            <td>{{ unekoDatuak.relative_humidity_2m }} %</td>
-            <td>{{ unekoDatuak.wind_speed_10m }} km/h</td>
-            <td>{{ unekoDatuak.cloud_cover }} %</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <hr class="my-5">
-
-  <div class="text-center mb-5">
-    <h2 class="fw-bold mb-4">{{ hiriaGordea }}REN BOST EGUNEKO IRAGARPENA</h2>
-    
-    <div class="table-responsive">
-      <table class="table table-bordered table-striped align-middle text-center">
-        <thead class="table-dark">
-          <tr>
-            <th>Eguna</th>
-            <th>Tenperatura Maxima</th>
-            <th>Tenperatura Minima</th>
-            <th>Deskribapena</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let egun of egunekoDatuak">
-            <td class="fw-bold">{{ egun.data | date:'yyyy/MM/dd' }}</td>
-            <td class="text-danger fw-bold">{{ egun.max }} °C</td>
-            <td class="text-primary fw-bold">{{ egun.min }} °C</td>
-            <td>
-              <span class="fs-4 me-2"><img style="height: 30px; width: 30px;" src="{{egun.deskribapena.irudia}}" ></span> 
-              {{ egun.deskribapena.testua }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
+<router-outlet></router-outlet>
