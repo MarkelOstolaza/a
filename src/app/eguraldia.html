@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euskal Herriko Eguraldia</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+
+    <!-- Nabigazio Menua -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="app.html">Turismoa EH</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuaNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menuaNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="app.html">Hasiera</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="eguraldia.html">Eguraldia Panel</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Eguraldiaren Eduki Nagusia -->
+    <div class="container">
+        <!-- Izenburua eta Txapa -->
+        <div class="row mb-3">
+            <div class="col d-flex justify-content-between align-items-center flex-wrap">
+                <h2 class="mb-2">Hiriburuetako Uneko Tenperaturak</h2>
+                <span id="egoera-txapa" class="badge bg-secondary fs-6 mb-2">Zain...</span>
+            </div>
+        </div>
+
+        <!-- Grafikoa -->
+        <div class="row mb-4">
+            <div class="col-12 bg-white p-4 rounded shadow-sm">
+                <canvas id="eguraldiGrafikoa" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Oina (Ordua eta Botoia) -->
+        <div class="row mb-5">
+            <div class="col d-flex justify-content-between align-items-center flex-wrap">
+                <p class="text-muted mb-2 fw-bold">Azken eguneratzea: <span id="azken-ordua" class="fw-normal">-</span></p>
+                <button id="berritu-btn" class="btn btn-primary mb-2">
+                    <i class="bi bi-arrow-clockwise"></i> Berritu Datuak Eskuz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript Logika -->
+    <script>
+        const hiriburuak = [
+            { izena: 'Bilbo', lat: 43.2627, lon: -2.9253, kolorea: 'rgba(255, 99, 132, 0.7)' },
+            { izena: 'Donostia', lat: 43.3128, lon: -1.9750, kolorea: 'rgba(54, 162, 235, 0.7)' },
+            { izena: 'Gasteiz', lat: 42.8463, lon: -2.6727, kolorea: 'rgba(75, 192, 192, 0.7)' },
+            { izena: 'Iruñea', lat: 42.8169, lon: -1.6432, kolorea: 'rgba(255, 206, 86, 0.7)' }
+        ];
+
+        let grafikoa = null;
+        const berritzeTartea = 10000; // 10 segundo
+
+        const txapa = document.getElementById('egoera-txapa');
+        const orduaSpan = document.getElementById('azken-ordua');
+        const berrituBtn = document.getElementById('berritu-btn');
+
+        function hasieratuGrafikoa() {
+            const ctx = document.getElementById('eguraldiGrafikoa').getContext('2d');
+            grafikoa = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hiriburuak.map(h => h.izena),
+                    datasets: [{
+                        label: 'Tenperatura (ºC)',
+                        data: [0, 0, 0, 0], 
+                        backgroundColor: hiriburuak.map(h => h.kolorea),
+                        borderColor: hiriburuak.map(h => h.kolorea.replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Zentigradu (ºC)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        async function kargatuDatuak() {
+            txapa.className = 'badge bg-warning text-dark fs-6 mb-2';
+            txapa.textContent = 'Kargatzen...';
+            berrituBtn.disabled = true;
+
+            try {
+                const promesak = hiriburuak.map(async (hiria) => {
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${hiria.lat}&longitude=${hiria.lon}&current_weather=true`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Sareko errorea API-a kargatzean');
+                    const data = await response.json();
+                    return data.current_weather.temperature; 
+                });
+
+                const emaitzak = await Promise.all(promesak);
+
+                grafikoa.data.datasets[0].data = emaitzak;
+                grafikoa.update();
+
+                txapa.className = 'badge bg-success fs-6 mb-2';
+                txapa.textContent = 'Eguneratuta';
+                
+                const orain = new Date();
+                orduaSpan.textContent = orain.toLocaleTimeString('eu-ES');
+                
+            } catch (error) {
+                console.error("Errorea gertatu da:", error);
+                txapa.className = 'badge bg-danger fs-6 mb-2';
+                txapa.textContent = 'Errorea datuak lortzean';
+            } finally {
+                berrituBtn.disabled = false;
+            }
+        }
+
+        window.onload = () => {
+            hasieratuGrafikoa();
+            kargatuDatuak(); 
+            setInterval(kargatuDatuak, berritzeTartea);
+        };
+
+        berrituBtn.addEventListener('click', kargatuDatuak);
+    </script>
+</body>
+</html>
