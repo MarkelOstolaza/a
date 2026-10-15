@@ -1,70 +1,112 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, Inject } from '@angular/core';
+import { isPlatformBrowser, CommonModule } from '@angular/common';
+
+declare var Chart: any;
 
 @Component({
   selector: 'app-eguraldia',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './eguraldia.component.html'
 })
-export class EguraldiaComponent {
-  bilaketaHiria: string = '';
-  hiriaGordea: string = '';
-  unekoDatuak: any = null;
-  egunekoDatuak: any[] = [];
+export class EguraldiaComponent implements OnInit, OnDestroy {
+  txapaKlasea: string = 'bg-secondary';
+  txapaTestua: string = 'Zain...';
+  ordua: string = '-';
+  botoiaDesgaituta: boolean = false;
 
-  constructor(private http: HttpClient) {}
+  grafikoa: any = null;
+  tenporizadorea: any;
+  berritzeTartea = 10000;
 
-  bilatuHiria() {
-    if (!this.bilaketaHiria.trim()) return;
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${this.bilaketaHiria}&count=1&language=eu&format=json`;
-    
-    this.http.get<any>(geoUrl).subscribe({
-      next: (geoData) => {
-        if (geoData.results && geoData.results.length > 0) {
-          const emaitza = geoData.results[0];
-          this.hiriaGordea = emaitza.name.toUpperCase();
-          this.lortuEguraldia(emaitza.latitude, emaitza.longitude);
-        } else {
-          alert('Ez da hiririk aurkitu!');
-        }
+  hiriburuak = [
+    { izena: 'Bilbo', lat: 43.2627, lon: -2.9253, kolorea: 'rgba(255, 99, 132, 0.7)' },
+    { izena: 'Donostia', lat: 43.3128, lon: -1.9750, kolorea: 'rgba(54, 162, 235, 0.7)' },
+    { izena: 'Gasteiz', lat: 42.8463, lon: -2.6727, kolorea: 'rgba(75, 192, 192, 0.7)' },
+    { izena: 'Iruñea', lat: 42.8169, lon: -1.6432, kolorea: 'rgba(255, 206, 86, 0.7)' }
+  ];
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
+  ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        this.hasieratuGrafikoa();
+        this.kargatuDatuak();
+        this.tenporizadorea = setInterval(() => {
+          this.kargatuDatuak();
+        }, this.berritzeTartea);
+      }, 0);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.tenporizadorea) clearInterval(this.tenporizadorea);
+  }
+
+  hasieratuGrafikoa() {
+    const canvas = document.getElementById('eguraldiGrafikoa') as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (this.grafikoa) this.grafikoa.destroy();
+
+    this.grafikoa = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: this.hiriburuak.map(h => h.izena),
+        datasets: [{
+          label: 'Tenperatura (ºC)',
+          data: [0, 0, 0, 0], 
+          backgroundColor: this.hiriburuak.map(h => h.kolorea),
+          borderColor: this.hiriburuak.map(h => h.kolorea.replace('0.7', '1')),
+          borderWidth: 1
+        }]
       },
-      error: (err) => console.error('Errorea geolokalizazioan', err)
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Zentigradu (ºC)' }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
     });
   }
 
-  lortuEguraldia(lat: number, lon: number) {
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`;
-    
-    this.http.get<any>(weatherUrl).subscribe({
-      next: (weatherData) => {
-        this.unekoDatuak = weatherData.current;
-        this.egunekoDatuak = [];
-        for (let i = 0; i < weatherData.daily.time.length; i++) {
-          this.egunekoDatuak.push({
-            data: weatherData.daily.time[i],
-            max: weatherData.daily.temperature_2m_max[i],
-            min: weatherData.daily.temperature_2m_min[i],
-            deskribapena: this.lortuEguraldiDeskribapena(weatherData.daily.weather_code[i])
-          });
-        }
-      },
-      error: (err) => console.error('Errorea eguraldia lortzean', err)
-    });
-  }
+  async kargatuDatuak() {
+    this.txapaKlasea = 'bg-warning text-dark';
+    this.txapaTestua = 'Kargatzen...';
+    this.botoiaDesgaituta = true;
 
-  lortuEguraldiDeskribapena(kodea: number): { testua: string, irudia: string } {
-    switch (true) {
-      case (kodea === 0): return { testua: 'Oskarbi', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTXWet2h1u68wyBhxcgFPgIb6YB0_2hbH3mQtI4sdiXKQ&s=10' };
-      case (kodea === 1 || kodea === 2 || kodea === 3): return { testua: 'Hodeitsu', irudia: 'https://static.vecteezy.com/system/resources/thumbnails/009/213/913/small_2x/cloud-with-sun-emoji-icon-cloudy-sunny-day-weather-symbol-illustration-vector.jpg' };
-      case (kodea === 45 || kodea === 48): return { testua: 'Lainotsua', irudia: 'https://static.vecteezy.com/system/resources/previews/009/213/910/non_2x/clouds-emoji-icon-cloudy-day-weather-symbol-illustration-free-vector.jpg' };
-      case (kodea >= 51 && kodea <= 57): return { testua: 'Zirimiria', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSuhb0yQ6HzfV061DbKpHauwNTZzU6Ub4irM6KYI1fe6Vi1ZoIh6VDe0pto&s=10' };
-      case (kodea >= 61 && kodea <= 67): return { testua: 'Euria', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSuhb0yQ6HzfV061DbKpHauwNTZzU6Ub4irM6KYI1fe6Vi1ZoIh6VDe0pto&s=10' };
-      case (kodea >= 71 && kodea <= 77): return { testua: 'Elurra', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9snnC9x58tvbgnk1_9dik_HlxC7MA5whopmDMFMwb_rswmnevqgZ__caL&s=10' };
-      case (kodea >= 95): return { testua: 'Ekaitza', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6ppSu8fN7nyrR_t5FiW166RfWvaGayWdqzvAFN4focw&s=10' };
-      default: return { testua: 'Ezezaguna', irudia: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9RCzgo-9ut_1JMOfA28VbyQIbRrmDLXOuM0oAuaaiDw&s=10' };
+    try {
+      const promesak = this.hiriburuak.map(async (hiria) => {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${hiria.lat}&longitude=${hiria.lon}&current_weather=true`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Sareko errorea API-a kargatzean');
+        const data = await response.json();
+        return data.current_weather.temperature; 
+      });
+
+      const emaitzak = await Promise.all(promesak);
+
+      if (this.grafikoa) {
+        this.grafikoa.data.datasets[0].data = emaitzak;
+        this.grafikoa.update();
+      }
+
+      this.txapaKlasea = 'bg-success';
+      this.txapaTestua = 'Eguneratuta';
+      this.ordua = new Date().toLocaleTimeString('eu-ES');
+    } catch (error) {
+      console.error("Errorea gertatu da:", error);
+      this.txapaKlasea = 'bg-danger';
+      this.txapaTestua = 'Errorea datuak lortzean';
+    } finally {
+      this.botoiaDesgaituta = false;
     }
   }
 }
