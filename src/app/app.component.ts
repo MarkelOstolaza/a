@@ -7,6 +7,4 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.component.html'
 })
-export class AppComponent {
-  title = 'Turismoa';
-}
+export class AppComponent { }
