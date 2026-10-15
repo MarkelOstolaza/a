@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { HasieraComponent } from './hasiera/hasiera';
-import { EguraldiaComponent } from './eguraldia/eguraldia';
+import { EguraldiaComponent } from './eguraldia/eguraldia.component';
 
 export const routes: Routes = [
     { path: '', component: HasieraComponent },

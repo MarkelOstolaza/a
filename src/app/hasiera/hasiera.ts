@@ -1,9 +1,8 @@
 import { Component } from '@angular/core';
 
 @Component({
-  imports: [],
   selector: 'app-hasiera',
-  styleUrl: './hasiera.css',
-  templateUrl: './hasiera.html',
+  standalone: true,
+  templateUrl: './hasiera.component.html'
 })
-export class Hasiera {}
+export class HasieraComponent { }
